@@ -65,6 +65,7 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\Game\AIMovement.cs" />
     <Compile Include="Assets\Scripts\Game\BallMovement.cs" />
+    <Compile Include="Assets\Scripts\Game\PaddleMovement.cs" />
     <Compile Include="Assets\Scripts\Game\PlayerMovement.cs" />
     <Compile Include="Assets\Scripts\Game\QuitGame.cs" />
     <Compile Include="Assets\Scripts\Game\ScoreKeeper.cs" />

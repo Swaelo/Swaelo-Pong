@@ -20,17 +20,11 @@ public class ScoreKeeper : MonoBehaviour
         ScoreDisplayMesh = GetComponent<TextMesh>();
     }
 
-    //Awards a point to the left-side player
-    public void ScoreLeft()
+    //Awards a point to the player who won the round
+    public void ScorePoint(bool LeftWins)
     {
-        LeftPlayerPoints += 1;
-        UpdateDisplay();
-    }
-
-    //Awards a point to the right-side player
-    public void ScoreRight()
-    {
-        RightPlayerPoints += 1;
+        LeftPlayerPoints += LeftWins ? 1 : 0;
+        RightPlayerPoints += LeftWins ? 0 : 1;
         UpdateDisplay();
     }
 
