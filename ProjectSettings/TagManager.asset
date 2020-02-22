@@ -5,12 +5,12 @@ TagManager:
   serializedVersion: 2
   tags:
   - Button
-  - Top
-  - Bottom
-  - Left
-  - Right
+  - Boundary
+  - Paddle
   - LeftPaddle
   - RightPaddle
+  - LeftWall
+  - RightWall
   layers:
   - Default
   - TransparentFX

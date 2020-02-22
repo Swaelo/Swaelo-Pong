@@ -8,106 +8,148 @@ using UnityEngine;
 
 public class BallMovement : MonoBehaviour
 {
-    public float StartingSpeed = 25f;   //Balls speed at the start of a new match
-    public float HitSpeedIncrease = 0.5f;   //Horizontal speed added to ball whenever it hits a paddle
-    public float PaddleBounceSpeedIncrease = 0.25f; //Vertical speed added to ball whenever it hits a moving paddle
+    //Movement variables
+    public float StartingSpeed = 3f;  //Balls initial speed at the start of a new match
+    public float CurrentSpeed;      //Balls current movement speed increased over time
+    public float HitSpeedIncrease = 0.2f;   //Horizontal speed added to the ball whenever it bounces of one of the paddles
+    public float PaddleBounceSpeedIncrease = 0.25f; //Vertical speed added to the ball whenever it bounces of a moving paddle
 
-    private Rigidbody RigidBody;    //The balls rigidbody component
+    //Physics variables
+    private Rigidbody RigidBody;    //The balls physics rigidbody component
+    private Vector3 CurrentDirection;   //Current direction the ball is travelling
 
-    public PaddleMovement LeftPaddle;   //Movement trackers for the 2 paddles
+    //Movement trackers for the 2 paddles on the table
+    public PaddleMovement LeftPaddle;
     public PaddleMovement RightPaddle;
+
+    //Round start variables
+    public NumberDisplayer RoundBeginCounter;   //Displays the numbers of the current round begin counter
+    private float BeginCounterDuration = 3f;    //How long the start of round countdown goes for
+    private float BeginCounterRemaining = 3f;   //Time remaining until the new round begins
+    private bool RoundBegun = false;          //Flags if the current round has started yet
 
     private void Awake()
     {
-        //Store reference to ball components
+        //Store reference to the rigidbody component
         RigidBody = GetComponent<Rigidbody>();
-
-        //Apply a force randomly left or right to get the ball moving
-        ResetBall();
     }
 
-    //Reset the balls position and velocity, then apply force to send it in random direction either left or right
+    //Returns the ball to the middle of the table and sends it off in a random direction
     private void ResetBall()
     {
+        //Reset balls position and speed
         transform.position = Vector3.zero;
-        RigidBody.velocity = Vector3.zero;
-        bool StartLeft = Random.value > 0.5f;
-        Vector3 StartingForce = new Vector3(StartLeft ? 1 : -1, 0, 0);
-        StartingForce *= StartingSpeed;
-        RigidBody.AddForce(StartingForce);
+        CurrentSpeed = StartingSpeed;
+
+        //Give a new movement direction
+        bool MoveLeft = Random.value > 0.5f;
+        CurrentDirection = new Vector3(MoveLeft ? 1 : -1, Random.Range(-1f, 1f), 0);
     }
 
     private void Update()
     {
-        //Pressing R resets the ball
-        if (Input.GetKeyDown(KeyCode.R))
-            ResetBall();
+        //Handle the countdown timer if the round hasnt begun yet
+        if(!RoundBegun)
+        {
+            HandleRoundCountdown();
+            return;
+        }
+
+        //Apply movement to the ball
+        transform.position += CurrentDirection * CurrentSpeed * Time.deltaTime;
     }
 
-    private void OnTriggerEnter(Collider other)
+    //Manages counting down and displaying of the new round timer
+    private void HandleRoundCountdown()
+    {
+        //Decrement the current timer value
+        BeginCounterRemaining -= Time.deltaTime;
+
+        //Start the round if the timer has expired
+        if(BeginCounterRemaining <= 0.0f)
+        {
+            RoundBegun = true;
+            RoundBeginCounter.DisplayNone();
+            ResetBall();
+            return;
+        }
+
+        //Update the timer display while the timer is still counting down
+        RoundBeginCounter.DisplayNumber((int)BeginCounterRemaining + 1);
+    }
+
+    private void OnCollisionEnter(Collision collision)
     {
         //Read the tag of the object that the ball collided with
-        string CollisionTag = other.transform.tag;
+        string CollisionTag = collision.transform.tag;
 
-        //Use the tag to determine the correct actions that should be taken
+        //Use this to pass the collision information onto the relevant collision handler function
         switch(CollisionTag)
         {
-            case "Top":
-                HandleTopBottomCollision();
+            //Top/Bottom wall collision
+            case "Boundary":
+                HandleBoundaryCollision(collision);
                 break;
-            case "Bottom":
-                HandleTopBottomCollision();
-                break;
+            //Paddle collisions
             case "LeftPaddle":
-                HandlePaddleCollision(true);
+                HandlePaddleCollision(collision, true);
                 break;
             case "RightPaddle":
-                HandlePaddleCollision(false);
+                HandlePaddleCollision(collision, false);
                 break;
-            case "Left":
+            //Wall collisions
+            case "LeftWall":
                 HandleRoundComplete(false);
                 break;
-            case "Right":
+            case "RightWall":
                 HandleRoundComplete(true);
                 break;
         }
     }
 
-    //Reverses the balls vertical direction
-    private void HandleTopBottomCollision()
+    private void HandleBoundaryCollision(Collision Boundary)
     {
-        //Take the current velocity, flip the Y value, then reapply it
-        Vector3 Velocity = RigidBody.velocity;
-        Velocity.y = -Velocity.y;
-        RigidBody.velocity = Velocity;
+        ReflectBall(Boundary);
+        SoundEffectsPlayer.Instance.PlaySound("Bounce Boundary");
     }
 
-    //Reverse and increase the balls horizontal direction, adjust vertical velocity based on paddle movement
-    private void HandlePaddleCollision(bool HitLeftPaddle)
+    private void HandlePaddleCollision(Collision Paddle, bool HitLeftPaddle)
     {
-        //Take the current velocity and flip the X value
-        Vector3 Velocity = RigidBody.velocity;
-        Velocity.x = -Velocity.x;
+        ReflectBall(Paddle);
+        SoundEffectsPlayer.Instance.PlaySound("Bounce Paddle");
 
-        //Increase the balls horizontal velocity by a small amount
-        Velocity.x += Velocity.x > 0.0f ? HitSpeedIncrease : -HitSpeedIncrease;
+        //Increase the balls speed by a small amount
+        CurrentSpeed += HitSpeedIncrease;
 
-        //Adjust the balls vertical velocity if the paddle is currently moving
+        //Adjust the balls vertical direction if the paddle is moving when the ball bounced off
         PaddleMovement CurrentPaddle = HitLeftPaddle ? LeftPaddle : RightPaddle;
         if (CurrentPaddle.Movement != Direction.None)
-            Velocity.y += CurrentPaddle.Movement == Direction.Up ? PaddleBounceSpeedIncrease : -PaddleBounceSpeedIncrease;
-        //Make a small random adjustment to the balls vertical velocity if the paddle isnt moving at all
+            CurrentDirection.y += CurrentPaddle.Movement == Direction.Up ? PaddleBounceSpeedIncrease : -PaddleBounceSpeedIncrease;
+        //Otherwise just make a small random adjustment to the balls vertical direction if the paddle was stationary
         else
-            Velocity.y += Random.Range(-0.25f, 0.25f);
-
-        //Apply the new velocity vector to the ball
-        RigidBody.velocity = Velocity;
+            CurrentDirection.y += Random.Range(-0.1f, 0.1f);
+        //Make sure paddle direction values stay in allowed values
+        CurrentDirection.y = Mathf.Clamp(CurrentDirection.y, -1f, 1f);
     }
 
     //Resets the ball and adds a point to the appropriate players score
     private void HandleRoundComplete(bool LeftWins)
     {
+        //Restart the round begin countdown
+        RoundBegun = false;
+        BeginCounterRemaining = BeginCounterDuration;
+        transform.position = Vector3.zero;
+        CurrentDirection = Vector3.zero;
+
+        SoundEffectsPlayer.Instance.PlaySound("Ball Lost");
         ScoreKeeper.Instance.ScorePoint(LeftWins);
         ResetBall();
+    }
+
+    //Reflects the ball from the surface it collided with
+    private void ReflectBall(Collision CollisionSurface)
+    {
+        Vector3 CollisionNormal = CollisionSurface.contacts[0].normal;
+        CurrentDirection = Vector3.Reflect(CurrentDirection, CollisionNormal);
     }
 }
