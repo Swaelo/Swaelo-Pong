@@ -4,7 +4,6 @@
 // Author:	    Harley Laurie https://www.github.com/Swaelo/
 // ================================================================================================================================
 
-using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
