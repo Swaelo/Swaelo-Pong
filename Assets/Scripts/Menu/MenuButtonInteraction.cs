@@ -4,6 +4,7 @@
 // Author:	    Harley Laurie https://www.github.com/Swaelo/
 // ================================================================================================================================
 
+using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -59,6 +60,9 @@ public class MenuButtonInteraction : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
+            if (ActiveButton == null)
+                return;
+
             if (ActiveButton.transform.name == "1P HitBox")
                 SceneManager.LoadScene(1);
             else if (ActiveButton.transform.name == "2P HitBox")

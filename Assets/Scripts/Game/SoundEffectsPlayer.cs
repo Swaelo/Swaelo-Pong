@@ -27,7 +27,7 @@ public class SoundEffectsPlayer : MonoBehaviour
         {
             if(Sound.SoundName == SoundName)
             {
-                SoundPlayer.PlayOneShot(Sound.SoundFile);
+                SoundPlayer.PlayOneShot(Sound.SoundFile, 0.3f);
                 return;
             }
         }
